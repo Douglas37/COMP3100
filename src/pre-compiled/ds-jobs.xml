@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- job list for ds-sim, 14-Feb, 2022 @ MQ - client-server -->
-<jobs>
-	<type name="unknown" minRunTime="100" maxRunTime="3000" populationRate="100" />
-	<job id="0" type="unknown" submitTime="28" estRunTime="1401" cores="2" memory="1800" disk="3300" />
-</jobs>
