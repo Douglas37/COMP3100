@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
-public class MyClient {
+public class TCPClient {
 
     private static boolean completeLoop = true;
     private static int largestServer = 0;
@@ -56,11 +56,21 @@ public class MyClient {
 
                     //Finding the largest server
                     for (int i = 0; i < arr; i++) {
+
+
                         str = (String) din.readLine();
                         System.out.println(str);
 
+                        if(i == 0){
+
+                            String[] spt = str.split(" ");
+                            serverType = spt[0];
+
+                        } 
+
+                        
                         //Find the IP address of the largest server to send job request to
-                        if (completeLoop) {
+                        /*if (completeLoop) {
                             serverList.add(str);
                             String[] spt = str.split(" ");
                             int core = Integer.parseInt(spt[4]);
@@ -74,30 +84,41 @@ public class MyClient {
                             else if (serverType.contains(spt[0])) {
                                 largestServerIP.add(IP);
                             }
-                        }
+                        } */
                     }
 
                     dout.write(("OK\n").getBytes());
                     str = (String) din.readLine();
                     System.out.println(str);
 
-                    if (largestServer< largestServerIP.size()) {
-                        dout.write(("SCHD " + jobRequest + " " + serverType + " " + largestServerIP.get(largestServer) + "\n").getBytes());
-                        str = (String) din.readLine();
-                        System.out.println(str);
-                        largestServer++;
-                    }
+                    // if (largestServer< largestServerIP.size()) {
+                    //     dout.write(("SCHD " + jobRequest + " " + serverType + " " + largestServerIP.get(largestServer) + "\n").getBytes());
+                    //     str = (String) din.readLine();
+                    //     System.out.println(str);
+                    //     largestServer++;
+                    // }
 
-                    if (largestServer > (largestServerIP.size()) - 1) {
-                        largestServer = 0;
+                    // if (largestServer > (largestServerIP.size()) - 1) {
+                    //     largestServer = 0;
+                    // }
+
+                    dout.write(("SCHD " + jobRequest + " " + serverType + " " + "0" + "\n").getBytes());
+                    str = (String) din.readLine();
+                    System.out.println(str);
+                    
+                    while(!(str.contains("OK"))){
+                        str = (String) din.readLine();
                     }
                 }
                 
                 //Once largest server is found, send the job to the server and close loop
+                
                 memory = str.substring(0, 4);
                 dout.write(("REDY\n").getBytes());
                 str = (String) din.readLine();
                 completeLoop = false;
+                
+                
             }
 
             //sends QUIT to exit 

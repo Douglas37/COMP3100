@@ -1,0 +1,6 @@
+# ds-sim server 14-Feb, 2022 @ MQ - client-server
+# Server-side simulator started with './ds-server -n'
+# Waiting for connection to port 50000 of IP address 127.0.0.1
+# Welcome  Douglas!
+# The system information can be read from 'ds-system.xml'
+t:         13 job     0 (waiting) on # 0 of server small (booting) SCHEDULED
