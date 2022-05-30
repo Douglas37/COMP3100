@@ -158,15 +158,15 @@ public class TCPClient {
 	public void readFile(File file) {
 		try {
 
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder builder = factory.newDocumentBuilder();
-			Document systemDocument = builder.parse(file);
-			systemDocument.getDocumentElement().normalize();
+			DocumentBuilderFactory fact = DocumentBuilderFactory.newInstance();
+			DocumentBuilder build = fact.newDocumentBuilder();
+			Document system = build.parse(file);
+			system.getDocumentElement().normalize();
 
-			NodeList serverNodeList = systemDocument.getElementsByTagName("server");
-			servers = new TCPServer[serverNodeList.getLength()];
-			for (int j = 0; j < serverNodeList.getLength(); j++) {
-				Element element = (Element) serverNodeList.item(j);
+			NodeList node = system.getElementsByTagName("server");
+			servers = new TCPServer[node.getLength()];
+			for (int j = 0; j < node.getLength(); j++) {
+				Element element = (Element) node.item(j);
 				String read = element.getAttribute("type");
 
 				int dis = Integer.parseInt(element.getAttribute("disk"));
@@ -188,8 +188,8 @@ public class TCPClient {
             text = din.readLine();
 			string = text;
 
-		} catch (IOException i) {
-			System.out.println("Error: " + i);
+		} catch (IOException e) {
+			System.out.println("Error: " + e);
 		}
 		return text;
 	}
@@ -199,8 +199,8 @@ public class TCPClient {
 		try {
 			dout.write((text + "\n").getBytes());
 			dout.flush();
-		} catch (IOException i) {
-			System.out.println("Error: " + i);
+		} catch (IOException e) {
+			System.out.println("Error: " + e);
 		}
 	}
 
