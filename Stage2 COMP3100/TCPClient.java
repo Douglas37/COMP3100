@@ -1,113 +1,222 @@
-import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
+import java.io.*;
+import org.w3c.dom.*;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+//write ./stage2-test-x86 "java TCPClient 127.0.0.1 50000 lrr" -o tt -n
 
 public class TCPClient {
-    private static boolean flag = true;
-    private static int largestServer = 0;
 
-    public static void main(String[] args) {
-        try {
-            Socket s = new Socket("localhost", 50000);
-            BufferedReader din = new BufferedReader(new InputStreamReader(s.getInputStream()));
-            DataOutputStream dout = new DataOutputStream(s.getOutputStream());
-            
-            //sends HELO and prints data
-            dout.write(("HELO\n").getBytes());
-            dout.flush();
-            String str = (String) din.readLine();
-           // System.out.println(str);
-            
-            //Authenticate the user
-            dout.write(("AUTH Douglas\n").getBytes());
-            dout.flush();
-            String str2 = (String) din.readLine();
-            //System.out.println(str2);
+	// Global variables established for the socket, input and output
+	// Write and read messages between client and server
+	private Socket s = null;
+	private BufferedReader din = null;
+	private DataOutputStream dout = null;
+	private TCPServer[] servers = new TCPServer[1];
+	private String string;
+	private Boolean flag = false;
+	private String[] string_arr;
 
-            //Array of strings to find the best suitable server
-            ArrayList<String> serverList = new ArrayList<String>(); 
-            String serverType = null;
 
-            dout.write(("REDY\n").getBytes());
-            str2 = (String) din.readLine();
-            //System.out.println(str2);
-            String memory = str2.substring(0, 4);
+	public TCPClient() {
+		try {
+			s = new Socket("localhost", 50000);
+			din = new BufferedReader(new InputStreamReader(s.getInputStream()));
+			dout = new DataOutputStream(s.getOutputStream());
 
-            //Find ID of first available server
-            ArrayList<Integer> largestServerID = new ArrayList<Integer>();
-            int disk = 0;
-            
-            while (!memory.contains("NONE")) {
-                
-                //get job informaton
-                String[] info = str2.split(" ");
-                if ((info[0].toUpperCase()).contains("JOBN")) {
-                    dout.write(("GETS Capable " + info[4] + " " + info[5] + " " + info[6] + "\n").getBytes());
-                    str2 = (String) din.readLine();
-                  //  System.out.println(str2);
-                    
-                    String[] getJobs = str2.split(" ");
-                    int arr = Integer.parseInt(getJobs[1]);
-                    dout.write(("OK\n").getBytes());
+		} catch (UnknownHostException e) {
+			System.out.println("Error: " + e);
+		} catch (IOException e) {
+			System.out.println("Error: " + e);
+		}
+	}
 
-                    
-                    for (int i = 0; i < arr; i++) {
-                        str2 = (String) din.readLine();
-                      //  System.out.println(str2);
-                        
-                        //find id of the first available server
-                        if (i == 0) {
-                            serverList.add(str2);
-                            String[] spt = str2.split(" ");
-                            int core = Integer.parseInt(spt[4]);
-                            int id = Integer.parseInt(spt[1]);
-                            // if core is greater than the disk of the data, disk will have the same data as the core
-                            if (disk < core) {
-                                serverType = spt[0]; 
-                                disk = core;
-                                largestServerID.clear();
-                                largestServerID.add(id);
-                            }
+	
+	public static void main(String args[]) {
+		TCPClient client = new TCPClient();
+		client.run();
+	}
 
-                            else if (serverType.contains(spt[0])) {
-                                largestServerID.add(id);
-                            }
+	public void run() {
+		
+		//sends HELO and prints data
+		write("HELO");
+		string = read();
+		
+		//Authenticate the user
+		write("AUTH Douglas");
+		string = read();
 
-                        }
+		//File that will be read
+		File file = new File("ds-system.xml");
+		readFile(file);
+		
+		write("REDY");
+		string = read();
 
-                    }
+		//call first algorithm
+		firstAlg();
 
-                    dout.write(("OK\n").getBytes());
-                    str2 = (String) din.readLine();
-                  //  System.out.println(str2);
+		quit();
+	}
 
-                    if (largestServer < largestServerID.size()) {
-                        dout.write(("SCHD " + info[2] + " " + serverType + " " + largestServerID.get(largestServer) + "\n").getBytes());
-                        str2 = (String) din.readLine();
-                     //   System.out.println(str2);
-                        largestServer++;
-                    }
-                    if (largestServer > (largestServerID.size()) - 1) {
-                        largestServer = 0;
-                    }
-                }
+	//First algorithm finds the available servers
+	public void firstAlg() {
+		
+		if (string.contains("NONE")) {
+			quit();
 
-                dout.write(("REDY\n").getBytes());
-                str2 = (String) din.readLine();
-                memory = str2.substring(0, 4);
-                flag = false;
-            }
+		} else {
+			
+			while (!flag) {
+				
+				if (string.contains("OK") || string.contains(".") || string.contains(".OK")) {
+					write("REDY");
+					string = read();
+				}
 
-            //sends QUIT to exit
-            dout.write(("QUIT\n").getBytes());
-            str2 = (String) din.readLine();
-          //  System.out.println(str2);
-            dout.close();
-            s.close();
+				String[] msg = string.split("\\s+");
+				String first = msg[0];
 
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-    }
+				while (first.contains("JCPL") || first.contains("RESR") || first.contains("RESF")) {
+					write("REDY");
+					string = read();
+
+					msg = string.split("\\s+");
+					first = msg[0];
+				}
+				
+				if (first.contains("NONE")) {
+					flag = true;
+					break;
+				}
+
+				String[] avail = string.split("\\s+");
+				findServer(avail);
+				string = read();
+
+				String num = avail[2];
+				String schd = "SCHD " + num + " " + string_arr[0] + " " + string_arr[1];
+				write(schd);
+				string = read();
+			}
+		}
+	}
+	
+	//finds the available servers for the job to be dispatched to 
+	public void findServer(String[] info){
+				write("GETS Available " + info[4] + " " + info[5] + " " + info[6]);
+				String job = read();
+				String[] id = job.split("\\s+");
+				int memory = Integer.parseInt(id[1]);
+				write("OK");
+				job = read();
+				if (job.contains(".")) {
+
+					write("GETS Capable " + info[4] + " " + info[5] + " " + info[6]);
+					job = read();
+					id = job.split("\\s+");
+
+					memory = Integer.parseInt(id[1]);
+
+					write("OK");
+					job = read();
+					String[] disk = job.split("\\r?\\n");
+
+					string_arr = disk[0].split("\\s+");
+					checkServer(job, memory, disk);
+					
+				} else {
+					String[] core = job.split("\\r?\\n");
+					string_arr = core[0].split("\\s+");
+					checkServer(job, memory, core);
+				}
+	}
+
+	//second algorithm compares disk, memory and corecount
+	public void checkServer(String disk, int memory, String[] core){
+		for (int i = 0; i < memory; i++){
+
+			core = disk.split("\\r?\\n");
+			String[] second = core[0].split("\\s+");
+			System.out.println(second);
+			if (Integer.parseInt(second[4]) > Integer.parseInt(string_arr[4]) && Integer.parseInt(second[5]) > Integer.parseInt(string_arr[5]) && Integer.parseInt(second[6]) > Integer.parseInt(string_arr[6]) ){
+				string_arr = second;
+			}
+			
+			if (memory - 1 == i){
+				write("OK");
+				break;
+			}
+			else {
+				disk = read();
+			}
+		}
+	}
+
+	// Parse through the XML file
+	public void readFile(File file) {
+		try {
+
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			Document systemDocument = builder.parse(file);
+			systemDocument.getDocumentElement().normalize();
+
+			NodeList serverNodeList = systemDocument.getElementsByTagName("server");
+			servers = new TCPServer[serverNodeList.getLength()];
+			for (int j = 0; j < serverNodeList.getLength(); j++) {
+				Element element = (Element) serverNodeList.item(j);
+				String read = element.getAttribute("type");
+
+				int dis = Integer.parseInt(element.getAttribute("disk"));
+				int mem = Integer.parseInt(element.getAttribute("memory"));
+				int cor = Integer.parseInt(element.getAttribute("cores"));
+
+				TCPServer temp = new TCPServer(j, read, mem, cor, dis);
+				servers[j] = temp;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	public String read() {
+		String text = "";
+		try {
+            text = din.readLine();
+			string = text;
+
+		} catch (IOException i) {
+			System.out.println("Error: " + i);
+		}
+		return text;
+	}
+
+
+	public void write(String text) {
+		try {
+			dout.write((text + "\n").getBytes());
+			dout.flush();
+		} catch (IOException i) {
+			System.out.println("Error: " + i);
+		}
+	}
+
+	//sends QUIT to exit
+	public void quit() {
+		try {
+			write("QUIT");
+			string = read();
+			if (string.contains("QUIT")) {
+				din.close();
+				dout.close();
+				s.close();
+			}
+		} catch (IOException e) {
+			System.out.println("Error: " + e);
+		}
+	}
 
 }

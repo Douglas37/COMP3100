@@ -1,33 +1,18 @@
-import java.net.*;
-import java.io.*;
-
-import java.util.concurrent.TimeUnit;
-
 public class TCPServer {
-	public static void main(String[] args) throws IOException {
-		ServerSocket ss = new ServerSocket(50000);
-		while (true) {
-		try{
-		Socket s = ss.accept();
-		DataInputStream din = new DataInputStream(s.getInputStream());
-		DataOutputStream dout = new DataOutputStream(s.getOutputStream());
 
-		String str = (String)din.readUTF();
-		System.out.println("RCVD: "+str);
+	public int id;
+	public String type;
+	public int memory;
+	public int cores;
+	public int disk;
 
-		dout.writeUTF("G'DAY");
-		System.out.println("SENT: G'DAY");
 
-		str = (String)din.readUTF();
-		System.out.println("RCVD: "+str);
 
-		dout.writeUTF("BYE");
-		System.out.println("SENT: BYE");
-
-		s.close();
-		}
-		catch(Exception e){System.out.println(e);}
-		}
+	TCPServer(int id, String t, int m, int c, int d) {
+		this.id = id;
+		this.type = t;
+		this.memory = m;
+		this.cores = c;
+		this.disk = d;
 	}
 }
-
